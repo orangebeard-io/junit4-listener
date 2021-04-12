@@ -1,23 +1,23 @@
 <h1 align="center">
-  <a href="https://github.com/orangebeard-io/JUnit4-listener">
-    <img src="https://raw.githubusercontent.com/orangebeard-io/JUnit4-listener/master/.github/logo.png" alt="Orangebeard.io JUnit4 Listener" height="200">
+  <a href="https://github.com/orangebeard-io/junit4-listener">
+    <img src="https://raw.githubusercontent.com/orangebeard-io/junit4-listener/master/.github/logo.png" alt="Orangebeard.io JUnit4 Listener" height="200">
   </a>
   <br>Orangebeard.io JUnit4 Listener<br>
 </h1>
 
-<h4 align="center">Orangebeard listener for the Java <a href="https://junit.org/JUnit4/" target="_blank" rel="noopener">JUnit</a> test framework.</h4>
+<h4 align="center">Orangebeard listener for the Java <a href="https://junit.org/junit4/" target="_blank" rel="noopener">JUnit</a> test framework.</h4>
 
 <p align="center">
-  <a href="https://repo.maven.apache.org/maven2/io/orangebeard/JUnit4-listener/">
-    <img src="https://img.shields.io/maven-central/v/io.orangebeard/JUnit4-listener?style=flat-square"
+  <a href="https://repo.maven.apache.org/maven2/io/orangebeard/junit4-listener/">
+    <img src="https://img.shields.io/maven-central/v/io.orangebeard/junit4-listener?style=flat-square"
       alt="MVN Version" />
   </a>
   <a href="https://github.com/orangebeard-io/JUnit4-listener/actions">
-    <img src="https://img.shields.io/github/workflow/status/orangebeard-io/JUnit4-listener/release?style=flat-square"
+    <img src="https://img.shields.io/github/workflow/status/orangebeard-io/junit4-listener/release?style=flat-square"
       alt="Build Status" />
   </a>
-  <a href="https://github.com/orangebeard-io/JUnit4-listener/blob/master/LICENSE.txt">
-    <img src="https://img.shields.io/github/license/orangebeard-io/JUnit4-listener?style=flat-square"
+  <a href="https://github.com/orangebeard-io/junit4-listener/blob/master/LICENSE.txt">
+    <img src="https://img.shields.io/github/license/orangebeard-io/junit4-listener?style=flat-square"
       alt="License" />
   </a>
 </p>
@@ -43,6 +43,33 @@ Add the dependency to your pom:
     <scope>test</scope>
 </dependency>
 ```
+
+and add the following plugins: 
+
+```xml
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-dependency-plugin</artifactId>
+    <version>3.1.1</version>
+    <executions>
+        <execution>
+            <id>getClasspathFilenames</id>
+            <goals>
+                <goal>properties</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <version>2.22.0</version>
+    <configuration>
+        <argLine>-javaagent:${com.nordstrom.tools:junit-foundation:jar}</argLine>
+    </configuration>
+</plugin>
+```
+
 
 ## Configuration
 
