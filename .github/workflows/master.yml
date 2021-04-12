@@ -57,7 +57,7 @@ jobs:
           tag_name: $VERSION
           release_name: "Release Orangebeard Java Client $VERSION"
           body: |
-            Release Orangebeard JUnit 5 Listener $VERSION.
+            Release Orangebeard JUnit 4 Listener $VERSION.
 
             **Changelog:**
             - To be filled...
