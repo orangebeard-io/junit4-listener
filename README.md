@@ -84,6 +84,8 @@ test {
 }
 ```
 
+For more details on JUnit Foundation, see https://github.com/sbabcoc/JUnit-Foundation. 
+
 ## Configuration
 
 For general usage of the extension, add or modify the surefire plugin:
