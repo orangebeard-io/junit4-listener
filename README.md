@@ -32,7 +32,7 @@
 
 ## Installation
 
-### Install the mvn package
+### Maven
 
 Add the dependency to your pom:
 ```xml
@@ -70,6 +70,19 @@ and add the following plugins:
 </plugin>
 ```
 
+### Gradle
+
+In gradle, add the dependency and agent configuration as follows: 
+
+```gradle
+dependencies {
+    compile 'io.orangebeard:junit4-listener:<version>'
+}
+test {
+    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }.absolutePath}"
+    testLogging.showStandardStreams = true
+}
+```
 
 ## Configuration
 
