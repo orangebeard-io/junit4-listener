@@ -46,24 +46,28 @@ Add the dependency to your pom:
 
 and add the following plugin: 
 
+and add the following plugins:
+
 ```xml
 <plugin>
-    <artifactId>maven-surefire-plugin</artifactId>
-    <version>2.22.2</version>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-dependency-plugin</artifactId>
+    <version>3.1.1</version>
     <executions>
         <execution>
+            <id>getClasspathFilenames</id>
             <goals>
-                <goal>test</goal>
+                <goal>properties</goal>
             </goals>
         </execution>
     </executions>
+</plugin>
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <version>2.22.0</version>
     <configuration>
-        <properties>
-            <property>
-                <name>listener</name>
-                <value>io.orangebeard.listener.OrangebeardListener</value>
-            </property>
-        </properties>
+        <argLine>-javaagent:${com.nordstrom.tools:junit-foundation:jar}</argLine>
     </configuration>
 </plugin>
 ```
