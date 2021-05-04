@@ -44,7 +44,9 @@ Add the dependency to your pom:
 </dependency>
 ```
 
-and add the following plugins: 
+and add the following plugin: 
+
+and add the following plugins:
 
 ```xml
 <plugin>
