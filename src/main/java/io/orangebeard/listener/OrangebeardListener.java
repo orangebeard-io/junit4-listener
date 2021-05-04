@@ -36,6 +36,14 @@ public class OrangebeardListener implements ShutdownListener, RunnerWatcher, Run
     private final Map<String, UUID> suites = new HashMap<>();
     private final Map<String, UUID> tests = new HashMap<>();
 
+
+    public OrangebeardListener() {}
+
+    //constructor for unit test
+    OrangebeardListener(OrangebeardV1Client client) {
+        this.orangebeardClient = client;
+    }
+
     @Override
     public void runStarted(Object runObject) {
         if (testRunUUID == null) {
@@ -53,6 +61,8 @@ public class OrangebeardListener implements ShutdownListener, RunnerWatcher, Run
 
     @Override
     public void runFinished(Object runObject) {
+        tests.values().forEach(test -> orangebeardClient.finishTestItem(test, new FinishTestItem(testRunUUID, Status.STOPPED, null, null)));
+        suites.values().forEach(suite -> orangebeardClient.finishTestItem(suite, new FinishTestItem()));
         orangebeardClient.finishTestRun(testRunUUID, new FinishTestRun());
     }
 
