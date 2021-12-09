@@ -18,8 +18,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static io.orangebeard.client.entity.TestItemType.SUITE;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -49,8 +47,8 @@ public class OrangebeardListenerTest {
 
         verify(orangebeardClient).startTestRun(captor.capture());
 
-        assertEquals("TestSetName", captor.getValue().getName());
-        assertEquals("Description", captor.getValue().getDescription());
+        assertThat(captor.getValue().getName()).isEqualTo("TestSetName");
+        assertThat(captor.getValue().getDescription()).isEqualTo("Description");
         assertThat(captor.getValue().getAttributes()).isEmpty();
     }
 
@@ -68,9 +66,9 @@ public class OrangebeardListenerTest {
         orangebeardListener.testSuiteStarted(suiteDescription);
 
         verify(orangebeardClient).startTestItem(eq(null), captor.capture());
-        assertEquals(testRunUUID, captor.getValue().getTestRunUUID());
-        assertEquals("Suite Description", captor.getValue().getName());
-        assertEquals(SUITE, captor.getValue().getType());
+        assertThat(captor.getValue().getTestRunUUID()).isEqualTo(testRunUUID);
+        assertThat(captor.getValue().getName()).isEqualTo("Suite Description");
+        assertThat(captor.getValue().getType()).isEqualTo(SUITE);
     }
 
     @Test
@@ -151,22 +149,21 @@ public class OrangebeardListenerTest {
         // Verify that the tests were put in the proper suites.
         List<StartTestItem> allStartTestItems = testItemCaptor.getAllValues();
         List<UUID> allUuids = suiteUuidCaptor.getAllValues();
-        assertNull(allUuids.get(0));
-        assertEquals(suiteUuid1, allUuids.get(1));
-        assertEquals(suiteUuid1, allUuids.get(2));
-        assertNull(allUuids.get(3));
-        assertEquals(suiteUuid2, allUuids.get(4));
-        assertEquals(suiteUuid2, allUuids.get(5));
+        assertThat(allUuids.get(0)).isNull();
+        assertThat(allUuids.get(1)).isEqualTo(suiteUuid1);
+        assertThat(allUuids.get(2)).isEqualTo(suiteUuid1);
+        assertThat(allUuids.get(3)).isNull();
+        assertThat(allUuids.get(4)).isEqualTo(suiteUuid2);
+        assertThat(allUuids.get(5)).isEqualTo(suiteUuid2);
 
         // Verify that the tests were registered with the right names.
-        assertEquals(suiteName1, allStartTestItems.get(0).getName());
-        assertEquals(testName11, allStartTestItems.get(1).getName());
-        assertEquals(testName12, allStartTestItems.get(2).getName());
+        assertThat(allStartTestItems.get(0).getName()).isEqualTo(suiteName1);
+        assertThat(allStartTestItems.get(1).getName()).isEqualTo(testName11);
+        assertThat(allStartTestItems.get(2).getName()).isEqualTo(testName12);
 
-        assertEquals(suiteName2, allStartTestItems.get(3).getName());
-        assertEquals(testName21, allStartTestItems.get(4).getName());
-        assertEquals(testName22, allStartTestItems.get(5).getName());
-
+        assertThat(allStartTestItems.get(3).getName()).isEqualTo(suiteName2);
+        assertThat(allStartTestItems.get(4).getName()).isEqualTo(testName21);
+        assertThat(allStartTestItems.get(5).getName()).isEqualTo(testName22);
     }
 
 }
