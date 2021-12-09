@@ -34,8 +34,8 @@ import static io.orangebeard.client.entity.TestItemType.SUITE;
 
 public class OrangebeardListener extends RunListener implements ShutdownListener {
 
-    private OrangebeardClient orangebeardClient;
-    private OrangebeardProperties properties;
+    private final OrangebeardClient orangebeardClient;
+    private final OrangebeardProperties properties;
 
     private UUID testRunUUID;
     private Status runStatus = PASSED;
@@ -46,35 +46,31 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
      * Public no-argument constructor, for use by the JUnitWatcher that uses the JUnit4 Listener.
      */
     public OrangebeardListener() {
+        properties = new OrangebeardProperties();
+        properties.checkPropertiesArePresent();
+
+        orangebeardClient = new OrangebeardV2Client(
+                properties.getEndpoint(),
+                properties.getAccessToken(),
+                properties.getProjectName(),
+                properties.requiredValuesArePresent());
     }
 
     /**
      * Parameterized constructor: used by component tests.
      * @param orangebeardClient A non-null instance of an Orangebeard client.
+     * @param orangebeardProperties The Orangebeard properties for this listener: endpoint, access token, description, etc.
      */
-    protected OrangebeardListener(@Nonnull OrangebeardClient orangebeardClient) {
+    protected OrangebeardListener(@Nonnull OrangebeardClient orangebeardClient, @Nonnull OrangebeardProperties orangebeardProperties) {
         this.orangebeardClient = orangebeardClient;
-        properties = new OrangebeardProperties();
-        properties.checkPropertiesArePresent();
+        properties = orangebeardProperties;
     }
 
 
     @Override
     public void testRunStarted(Description description) {
         if (testRunUUID == null) {
-            if (orangebeardClient == null) {
-                OrangebeardProperties orangebeardProperties = new OrangebeardProperties();
-                orangebeardProperties.checkPropertiesArePresent();
-
-                this.orangebeardClient = new OrangebeardV2Client(
-                        orangebeardProperties.getEndpoint(),
-                        orangebeardProperties.getAccessToken(),
-                        orangebeardProperties.getProjectName(),
-                        orangebeardProperties.requiredValuesArePresent());
-                this.testRunUUID = orangebeardClient.startTestRun(new StartTestRun(orangebeardProperties.getTestSetName(), orangebeardProperties.getDescription(), orangebeardProperties.getAttributes()));
-            } else {
-                this.testRunUUID = orangebeardClient.startTestRun(new StartTestRun(properties.getTestSetName(), properties.getDescription(), properties.getAttributes()));
-            }
+            this.testRunUUID = orangebeardClient.startTestRun(new StartTestRun(properties.getTestSetName(), properties.getDescription(), properties.getAttributes()));
         }
     }
 
