@@ -4,7 +4,7 @@
 
     <groupId>io.orangebeard</groupId>
     <artifactId>junit4-listener</artifactId>
-    <version>0.0.8-SNAPSHOT</version>
+    <version>0.0.9-SNAPSHOT</version>
 
     <url>https://github.com/orangebeard-io/junit4-listener</url>
     <name>Orangebeard.io JUnit4 Listener</name>
