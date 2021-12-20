@@ -2,8 +2,9 @@ package io.orangebeard.listener;
 
 import com.nordstrom.automation.junit.ShutdownListener;
 
+import io.orangebeard.client.OrangebeardClient;
 import io.orangebeard.client.OrangebeardProperties;
-import io.orangebeard.client.OrangebeardV1Client;
+import io.orangebeard.client.OrangebeardV2Client;
 import io.orangebeard.client.entity.FinishTestItem;
 import io.orangebeard.client.entity.FinishTestRun;
 import io.orangebeard.client.entity.Log;
@@ -18,6 +19,7 @@ import org.junit.runner.Description;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
+import javax.annotation.Nonnull;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -28,28 +30,47 @@ import static io.orangebeard.client.entity.Status.FAILED;
 import static io.orangebeard.client.entity.Status.PASSED;
 import static io.orangebeard.client.entity.Status.SKIPPED;
 import static io.orangebeard.client.entity.Status.STOPPED;
+import static io.orangebeard.client.entity.TestItemType.SUITE;
 
 public class OrangebeardListener extends RunListener implements ShutdownListener {
 
-    private OrangebeardV1Client orangebeardClient;
+    private final OrangebeardClient orangebeardClient;
+    private final OrangebeardProperties properties;
 
     private UUID testRunUUID;
     private Status runStatus = PASSED;
     private final Map<String, SuiteInfo> suites = new HashMap<>();
     private final Map<String, UUID> tests = new HashMap<>();
 
+    /**
+     * Public no-argument constructor, for use by the JUnitWatcher that uses the JUnit4 Listener.
+     */
+    public OrangebeardListener() {
+        properties = new OrangebeardProperties();
+        properties.checkPropertiesArePresent();
+
+        orangebeardClient = new OrangebeardV2Client(
+                properties.getEndpoint(),
+                properties.getAccessToken(),
+                properties.getProjectName(),
+                properties.requiredValuesArePresent());
+    }
+
+    /**
+     * Parameterized constructor: used by component tests.
+     * @param orangebeardClient A non-null instance of an Orangebeard client.
+     * @param orangebeardProperties The Orangebeard properties for this listener: endpoint, access token, description, etc.
+     */
+    protected OrangebeardListener(@Nonnull OrangebeardClient orangebeardClient, @Nonnull OrangebeardProperties orangebeardProperties) {
+        this.orangebeardClient = orangebeardClient;
+        properties = orangebeardProperties;
+    }
+
+
     @Override
     public void testRunStarted(Description description) {
         if (testRunUUID == null) {
-            OrangebeardProperties orangebeardProperties = new OrangebeardProperties();
-            orangebeardProperties.checkPropertiesArePresent();
-
-            this.orangebeardClient = new OrangebeardV1Client(
-                    orangebeardProperties.getEndpoint(),
-                    orangebeardProperties.getAccessToken(),
-                    orangebeardProperties.getProjectName(),
-                    orangebeardProperties.requiredValuesArePresent());
-            this.testRunUUID = orangebeardClient.startTestRun(new StartTestRun(orangebeardProperties.getTestSetName(), orangebeardProperties.getDescription(), orangebeardProperties.getAttributes()));
+            this.testRunUUID = orangebeardClient.startTestRun(new StartTestRun(properties.getTestSetName(), properties.getDescription(), properties.getAttributes()));
         }
     }
 
@@ -62,10 +83,12 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
     public void testSuiteStarted(Description description) {
         String suiteName = getSuiteName(description);
 
-        if (!suites.containsKey(suiteName)) {
-            UUID suiteUUID = orangebeardClient.startRootItem(new StartTestItem(testRunUUID, suiteName, TestItemType.SUITE));
-            suites.put(suiteName, new SuiteInfo(suiteUUID));
-        }
+        suites.computeIfAbsent(suiteName,
+                key -> {
+                    UUID suiteUUID = orangebeardClient.startTestItem(null, new StartTestItem(testRunUUID, suiteName, SUITE));
+                    return new SuiteInfo(suiteUUID);
+                }
+        );
     }
 
     @Override
