@@ -8,11 +8,11 @@ import io.orangebeard.client.OrangebeardV2Client;
 import io.orangebeard.client.entity.FinishTestItem;
 import io.orangebeard.client.entity.FinishTestRun;
 import io.orangebeard.client.entity.Log;
+import io.orangebeard.client.entity.LogFormat;
 import io.orangebeard.client.entity.LogLevel;
 import io.orangebeard.client.entity.StartTestItem;
 import io.orangebeard.client.entity.StartTestRun;
 import io.orangebeard.client.entity.Status;
-import io.orangebeard.client.entity.TestItemType;
 import io.orangebeard.listener.entity.SuiteInfo;
 
 import org.junit.runner.Description;
@@ -30,6 +30,7 @@ import static io.orangebeard.client.entity.Status.FAILED;
 import static io.orangebeard.client.entity.Status.PASSED;
 import static io.orangebeard.client.entity.Status.SKIPPED;
 import static io.orangebeard.client.entity.Status.STOPPED;
+import static io.orangebeard.client.entity.TestItemType.TEST;
 import static io.orangebeard.client.entity.TestItemType.SUITE;
 
 public class OrangebeardListener extends RunListener implements ShutdownListener {
@@ -58,14 +59,14 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
 
     /**
      * Parameterized constructor: used by component tests.
-     * @param orangebeardClient A non-null instance of an Orangebeard client.
+     *
+     * @param orangebeardClient     A non-null instance of an Orangebeard client.
      * @param orangebeardProperties The Orangebeard properties for this listener: endpoint, access token, description, etc.
      */
     protected OrangebeardListener(@Nonnull OrangebeardClient orangebeardClient, @Nonnull OrangebeardProperties orangebeardProperties) {
         this.orangebeardClient = orangebeardClient;
         properties = orangebeardProperties;
     }
-
 
     @Override
     public void testRunStarted(Description description) {
@@ -122,8 +123,8 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
 
         if (itemId != null) {
             orangebeardClient.finishTestItem(itemId, new FinishTestItem(testRunUUID, FAILED));
-            orangebeardClient.log(new Log(testRunUUID, itemId, error, failure.getMessage()));
-            orangebeardClient.log(new Log(testRunUUID, itemId, debug, failure.getTrace()));
+            orangebeardClient.log(new Log(testRunUUID, itemId, error, failure.getMessage(), LogFormat.PLAIN_TEXT));
+            orangebeardClient.log(new Log(testRunUUID, itemId, debug, failure.getTrace(), LogFormat.PLAIN_TEXT));
             tests.remove(testName);
         }
         if (suiteInfo != null) {
@@ -136,7 +137,7 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
         String testName = failure.getDescription().getMethodName();
         UUID itemId = tests.get(testName);
         orangebeardClient.finishTestItem(itemId, new FinishTestItem(testRunUUID, SKIPPED));
-        orangebeardClient.log(new Log(testRunUUID, itemId, LogLevel.info, failure.getMessage()));
+        orangebeardClient.log(new Log(testRunUUID, itemId, LogLevel.info, failure.getMessage(), LogFormat.PLAIN_TEXT));
     }
 
     @Override
@@ -162,7 +163,7 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
     private UUID startTest(Description description) {
         String testName = getTestName(description);
 
-        UUID testId = orangebeardClient.startTestItem(getSuiteUUID(description), new StartTestItem(testRunUUID, testName, TestItemType.STEP));
+        UUID testId = orangebeardClient.startTestItem(getSuiteUUID(description), new StartTestItem(testRunUUID, testName, TEST));
         tests.put(testName, testId);
         return testId;
     }
