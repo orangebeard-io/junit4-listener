@@ -2,44 +2,38 @@ package io.orangebeard.listener;
 
 import com.nordstrom.automation.junit.ShutdownListener;
 
-import io.orangebeard.client.OrangebeardClient;
 import io.orangebeard.client.OrangebeardProperties;
-import io.orangebeard.client.OrangebeardV2Client;
-import io.orangebeard.client.entity.FinishTestItem;
-import io.orangebeard.client.entity.FinishTestRun;
-import io.orangebeard.client.entity.Log;
-import io.orangebeard.client.entity.LogLevel;
-import io.orangebeard.client.entity.StartTestItem;
-import io.orangebeard.client.entity.StartTestRun;
-import io.orangebeard.client.entity.Status;
-import io.orangebeard.client.entity.TestItemType;
-import io.orangebeard.listener.entity.SuiteInfo;
+import io.orangebeard.client.entity.FinishV3TestRun;
+import io.orangebeard.client.entity.LogFormat;
+import io.orangebeard.client.entity.StartV3TestRun;
+import io.orangebeard.client.entity.log.Log;
+import io.orangebeard.client.entity.suite.StartSuite;
+import io.orangebeard.client.entity.test.FinishTest;
+import io.orangebeard.client.entity.test.StartTest;
+import io.orangebeard.client.entity.test.TestStatus;
+import io.orangebeard.client.entity.test.TestType;
+import io.orangebeard.client.v3.OrangebeardAsyncV3Client;
 
 import org.junit.runner.Description;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 import javax.annotation.Nonnull;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static io.orangebeard.client.entity.LogLevel.debug;
-import static io.orangebeard.client.entity.LogLevel.error;
-import static io.orangebeard.client.entity.Status.FAILED;
-import static io.orangebeard.client.entity.Status.PASSED;
-import static io.orangebeard.client.entity.Status.SKIPPED;
-import static io.orangebeard.client.entity.Status.STOPPED;
-import static io.orangebeard.client.entity.TestItemType.SUITE;
+import static io.orangebeard.client.entity.log.LogLevel.*;
 
 public class OrangebeardListener extends RunListener implements ShutdownListener {
 
-    private final OrangebeardClient orangebeardClient;
+    private final OrangebeardAsyncV3Client orangebeardClient;
     private final OrangebeardProperties properties;
 
     private UUID testRunUUID;
-    private Status runStatus = PASSED;
-    private final Map<String, SuiteInfo> suites = new HashMap<>();
+    private final Map<String, UUID> suites = new HashMap<>();
     private final Map<String, UUID> tests = new HashMap<>();
 
     /**
@@ -49,7 +43,7 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
         properties = new OrangebeardProperties();
         properties.checkPropertiesArePresent();
 
-        orangebeardClient = new OrangebeardV2Client(
+        orangebeardClient = new OrangebeardAsyncV3Client(
                 properties.getEndpoint(),
                 properties.getAccessToken(),
                 properties.getProjectName(),
@@ -58,19 +52,19 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
 
     /**
      * Parameterized constructor: used by component tests.
-     * @param orangebeardClient A non-null instance of an Orangebeard client.
+     *
+     * @param orangebeardClient     A non-null instance of an Orangebeard client.
      * @param orangebeardProperties The Orangebeard properties for this listener: endpoint, access token, description, etc.
      */
-    protected OrangebeardListener(@Nonnull OrangebeardClient orangebeardClient, @Nonnull OrangebeardProperties orangebeardProperties) {
+    protected OrangebeardListener(@Nonnull OrangebeardAsyncV3Client orangebeardClient, @Nonnull OrangebeardProperties orangebeardProperties) {
         this.orangebeardClient = orangebeardClient;
         properties = orangebeardProperties;
     }
 
-
     @Override
     public void testRunStarted(Description description) {
         if (testRunUUID == null) {
-            this.testRunUUID = orangebeardClient.startTestRun(new StartTestRun(properties.getTestSetName(), properties.getDescription(), properties.getAttributes()));
+            this.testRunUUID = orangebeardClient.startTestRun(new StartV3TestRun(properties.getTestSetName(), properties.getDescription(), properties.getAttributes()));
         }
     }
 
@@ -85,8 +79,9 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
 
         suites.computeIfAbsent(suiteName,
                 key -> {
-                    UUID suiteUUID = orangebeardClient.startTestItem(null, new StartTestItem(testRunUUID, suiteName, SUITE));
-                    return new SuiteInfo(suiteUUID);
+                    StartSuite startSuite = StartSuite.builder().testRunUUID(testRunUUID).suiteNames(List.of(suiteName)).build();
+                    List<UUID> createdSuites = orangebeardClient.startSuite(startSuite);
+                    return createdSuites.get(createdSuites.size() - 1);
                 }
         );
     }
@@ -94,8 +89,6 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
     @Override
     public void testSuiteFinished(Description description) {
         String suiteName = getSuiteName(description);
-        SuiteInfo suiteInfo = suites.get(suiteName);
-        orangebeardClient.finishTestItem(suiteInfo.getSuiteUUID(), new FinishTestItem(testRunUUID, suiteInfo.getStatus()));
         suites.remove(suiteName);
     }
 
@@ -108,26 +101,21 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
     public void testFinished(Description description) {
         String testName = description.getMethodName();
         if (tests.containsKey(testName)) {
-            orangebeardClient.finishTestItem(tests.get(testName), new FinishTestItem(testRunUUID, PASSED));
+            orangebeardClient.finishTest(tests.get(testName), new FinishTest(testRunUUID, TestStatus.PASSED, ZonedDateTime.now()));
             tests.remove(testName);
         }
     }
 
     @Override
     public void testFailure(Failure failure) {
-        runStatus = FAILED;
         String testName = failure.getDescription().getMethodName();
         UUID itemId = tests.get(testName);
-        SuiteInfo suiteInfo = suites.get(getSuiteName(failure.getDescription()));
 
         if (itemId != null) {
-            orangebeardClient.finishTestItem(itemId, new FinishTestItem(testRunUUID, FAILED));
-            orangebeardClient.log(new Log(testRunUUID, itemId, error, failure.getMessage()));
-            orangebeardClient.log(new Log(testRunUUID, itemId, debug, failure.getTrace()));
+            orangebeardClient.log(new Log(testRunUUID, itemId, null, failure.getMessage(), ERROR, ZonedDateTime.now(), LogFormat.PLAIN_TEXT));
+            orangebeardClient.log(new Log(testRunUUID, itemId, null, failure.getTrace(), DEBUG, ZonedDateTime.now(), LogFormat.PLAIN_TEXT));
+            orangebeardClient.finishTest(itemId, new FinishTest(testRunUUID, TestStatus.FAILED, ZonedDateTime.now()));
             tests.remove(testName);
-        }
-        if (suiteInfo != null) {
-            suiteInfo.setStatus(FAILED);
         }
     }
 
@@ -135,14 +123,14 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
     public void testAssumptionFailure(Failure failure) {
         String testName = failure.getDescription().getMethodName();
         UUID itemId = tests.get(testName);
-        orangebeardClient.finishTestItem(itemId, new FinishTestItem(testRunUUID, SKIPPED));
-        orangebeardClient.log(new Log(testRunUUID, itemId, LogLevel.info, failure.getMessage()));
+        orangebeardClient.finishTest(itemId, new FinishTest(testRunUUID, TestStatus.SKIPPED, ZonedDateTime.now()));
+        orangebeardClient.log(new Log(testRunUUID, itemId, null, failure.getMessage(), INFO, ZonedDateTime.now(), LogFormat.PLAIN_TEXT));
     }
 
     @Override
     public void testIgnored(Description description) {
         UUID testId = startTest(description);
-        orangebeardClient.finishTestItem(testId, new FinishTestItem(testRunUUID, SKIPPED));
+        orangebeardClient.finishTest(testId, new FinishTest(testRunUUID, TestStatus.SKIPPED, ZonedDateTime.now()));
         tests.remove(getTestName(description));
     }
 
@@ -153,16 +141,13 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
 
     private void finishTestRun() {
         //Forceful cleanup
-        tests.values().forEach(testUUID -> orangebeardClient.finishTestItem(testUUID, new FinishTestItem(testRunUUID, STOPPED)));
-        suites.values().forEach(suiteInfo -> orangebeardClient.finishTestItem(suiteInfo.getSuiteUUID(), new FinishTestItem(testRunUUID, STOPPED)));
-
-        orangebeardClient.finishTestRun(testRunUUID, new FinishTestRun(runStatus));
+        tests.values().forEach(testUUID -> orangebeardClient.finishTest(testUUID, new FinishTest(testRunUUID, TestStatus.STOPPED, ZonedDateTime.now())));
+        orangebeardClient.finishTestRun(testRunUUID, new FinishV3TestRun());
     }
 
     private UUID startTest(Description description) {
         String testName = getTestName(description);
-
-        UUID testId = orangebeardClient.startTestItem(getSuiteUUID(description), new StartTestItem(testRunUUID, testName, TestItemType.STEP));
+        UUID testId = orangebeardClient.startTest(new StartTest(testRunUUID, getSuiteUUID(description), testName, TestType.TEST, null, null, ZonedDateTime.now()));
         tests.put(testName, testId);
         return testId;
     }
@@ -176,7 +161,7 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
     }
 
     private UUID getSuiteUUID(Description description) {
-        return suites.get(getSuiteName(description)).getSuiteUUID();
+        return suites.get(getSuiteName(description));
     }
 
     private String getSuiteName(Description description) {
