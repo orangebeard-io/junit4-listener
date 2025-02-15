@@ -18,7 +18,6 @@ import org.junit.runner.Description;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
-import javax.annotation.Nonnull;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -53,7 +52,7 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
      * @param orangebeardClient     A non-null instance of an Orangebeard client.
      * @param orangebeardProperties The Orangebeard properties for this listener: endpoint, access token, description, etc.
      */
-    protected OrangebeardListener(@Nonnull OrangebeardAsyncV3Client orangebeardClient, @Nonnull OrangebeardProperties orangebeardProperties) {
+    protected OrangebeardListener(OrangebeardAsyncV3Client orangebeardClient, OrangebeardProperties orangebeardProperties) {
         this.orangebeardClient = orangebeardClient;
         properties = orangebeardProperties;
     }
