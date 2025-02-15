@@ -20,7 +20,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>17</java.version>
+        <java.version>1.17</java.version>
         <java.client.version>3.0.1</java.client.version>
         <junit.version>5.6.2</junit.version>
         <jackson.version>2.10.3</jackson.version>
@@ -51,17 +51,7 @@
         <dependency>
             <groupId>com.nordstrom.tools</groupId>
             <artifactId>junit-foundation</artifactId>
-            <version>15.0.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-classic</artifactId>
-                </exclusion>
-            </exclusions>
+            <version>17.1.1</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -118,6 +108,7 @@
     </build>
 
     <profiles>
+        <!-- all plugins below are usually only required for release builds -->
         <profile>
             <id>maven-release</id>
             <build>
@@ -126,7 +117,7 @@
                     <plugin>
                         <groupId>org.sonatype.plugins</groupId>
                         <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.6.7</version>
+                        <version>1.6.14</version>
                         <extensions>true</extensions>
                         <configuration>
                             <serverId>staging</serverId>
@@ -165,6 +156,7 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <!--verify-->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>

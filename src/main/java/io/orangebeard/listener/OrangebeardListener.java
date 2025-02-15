@@ -40,14 +40,11 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
      * Public no-argument constructor, for use by the JUnitWatcher that uses the JUnit4 Listener.
      */
     public OrangebeardListener() {
+        System.out.println("Init listener");
         properties = new OrangebeardProperties();
+        System.out.println(properties.requiredValuesArePresent());
         properties.checkPropertiesArePresent();
-
-        orangebeardClient = new OrangebeardAsyncV3Client(
-                properties.getEndpoint(),
-                properties.getAccessToken(),
-                properties.getProjectName(),
-                properties.requiredValuesArePresent());
+        orangebeardClient = new OrangebeardAsyncV3Client();
     }
 
     /**
@@ -63,9 +60,11 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
 
     @Override
     public void testRunStarted(Description description) {
+        System.out.println("Starting run...");
         if (testRunUUID == null) {
             this.testRunUUID = orangebeardClient.startTestRun(new StartV3TestRun(properties.getTestSetName(), properties.getDescription(), properties.getAttributes()));
         }
+        System.out.println("Started run: " + testRunUUID);
     }
 
     @Override
@@ -76,6 +75,7 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
     @Override
     public void testSuiteStarted(Description description) {
         String suiteName = getSuiteName(description);
+        System.out.println("Suite start: " + suiteName);
 
         suites.computeIfAbsent(suiteName,
                 key -> {
@@ -140,13 +140,14 @@ public class OrangebeardListener extends RunListener implements ShutdownListener
     }
 
     private void finishTestRun() {
-        //Forceful cleanup
+        System.out.println("Finishing run: " + testRunUUID);
         tests.values().forEach(testUUID -> orangebeardClient.finishTest(testUUID, new FinishTest(testRunUUID, TestStatus.STOPPED, ZonedDateTime.now())));
         orangebeardClient.finishTestRun(testRunUUID, new FinishV3TestRun());
     }
 
     private UUID startTest(Description description) {
         String testName = getTestName(description);
+        System.out.println("Test start: " + testName);
         UUID testId = orangebeardClient.startTest(new StartTest(testRunUUID, getSuiteUUID(description), testName, TestType.TEST, null, null, ZonedDateTime.now()));
         tests.put(testName, testId);
         return testId;
